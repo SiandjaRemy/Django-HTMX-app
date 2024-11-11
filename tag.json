@@ -1,0 +1,79 @@
+[
+{
+    "model": "a_post.tag",
+    "pk": 1,
+    "fields": {
+        "name": "Anime",
+        "slug": "anime",
+        "icon": null,
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T16:07:37.947Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 2,
+    "fields": {
+        "name": "Cartoons",
+        "slug": "cartoons",
+        "icon": null,
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T16:07:37.947Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 3,
+    "fields": {
+        "name": "Landscape",
+        "slug": "landscape",
+        "icon": null,
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T16:07:37.947Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 4,
+    "fields": {
+        "name": "Animals",
+        "slug": "animals",
+        "icon": "ri-bear-smile-fill",
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T19:50:16.584Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 5,
+    "fields": {
+        "name": "Fight",
+        "slug": "fight",
+        "icon": null,
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T16:07:37.947Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 6,
+    "fields": {
+        "name": "Action",
+        "slug": "action",
+        "icon": "ri-sword-fill",
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T19:49:29.360Z"
+    }
+},
+{
+    "model": "a_post.tag",
+    "pk": 7,
+    "fields": {
+        "name": "Nature",
+        "slug": "nature",
+        "icon": null,
+        "created_at": "2024-10-17T16:07:37.933Z",
+        "modified_at": "2024-10-17T16:07:37.947Z"
+    }
+}
+]

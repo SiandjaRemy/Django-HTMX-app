@@ -1,0 +1,23 @@
+<fade-in 
+class="opacity-0 block -mt-20 ease-in-out"
+_="on load transition my margin-top to 0 over 0.2 seconds then transition my opacity to 1 over 0.6 seconds">
+
+{% include "a_post/comment.html" %}
+
+</fade-in>
+
+<div hx-swap-oob="outerHTML" id="commentscount-{{ post.id }}" class="flex items-center">
+    Comment{{ post.comments.count|pluralize }}
+  <span class="font-light text-gray-500 ml-1">{{ post.comments.count }}</span>
+</div>
+
+<div 
+hx-swap-oob="outerHTML"
+hx-target="#tab-contents" 
+hx-swap="innerHTML"
+id="tabs-for-{{ post.id }}" 
+class="{% if post.comments.count > 1 %} ml-4 flex gap-1 mb-4 {% else %} hidden {% endif %}"
+_="on load transition my margin-top to 0 over 0.2 seconds then transition my opacity to 1 over 0.6 seconds on htmx:afterOnLoad take .selected for event.target">
+    <a hx-get="{% url 'post-detail' post.id %}" class="tab selected">Newest First</a> 
+    <a hx-get="{% url 'post-detail' post.id %}?top" class="tab">Top Comments</a>
+</div>
