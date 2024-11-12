@@ -28,7 +28,7 @@
                 </svg>
             </div>
             {% endif %}
-            {% if comment.replies.count  %}
+            {% if comment.has_replies %}
                 Repl{{ comment.replies.count|pluralize:'y,ies' }}
                 <span class="font-light text-gray-500 ml-1">{{ comment.replies.count }}</span>
             {% else %}

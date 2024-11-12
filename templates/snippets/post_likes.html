@@ -8,7 +8,7 @@
         <img class="w-4 -mt-1" src="{% static 'images/fireheart.svg' %}" />
         {% endif %}
         
-        {{ post.likes.count }}
+        {{ post.likes.count}}
     </div>
     {% endif %}
     {% if user.is_authenticated and user != post.author %}

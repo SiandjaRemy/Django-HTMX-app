@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import Http404, HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Prefetch, When, BooleanField, Case
 from django.contrib import messages
 from django.core.paginator import Paginator
 
@@ -18,12 +18,12 @@ def home_view(request, tag=None):
 
     if tag is not None:
         try:
-            all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "comments").filter(tags__slug=tag).order_by("-created_at")
+            all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").filter(tags__slug=tag).order_by("-created_at")
             tag = Tag.objects.filter(slug=tag).first()
         except Exception as e:
             print(f"Error: {e}")
     else:
-        all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "comments", "author__profile").all().order_by("-created_at")
+        all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").all().order_by("-created_at")
     
     paginator = Paginator(all_posts, 3)
     page = int(request.GET.get("page", 1))
@@ -128,20 +128,52 @@ def post_edit_view(request, pk):
 
 def post_detail_view(request, pk):
     try:
-        post = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "comments").filter(id=pk).first()
+        post = (Post.objects
+                .annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments"))
+                .select_related("author")
+                .prefetch_related(
+                    Prefetch("comments", queryset=Comment.objects
+                    .annotate(
+                        number_of_likes=Count("likes"), 
+                        number_of_replies=Count("replies"),
+                        has_replies=Case(
+                            When(number_of_replies__gt=0, then=True), 
+                            default=False,
+                            output_field=BooleanField()
+                        )
+                    )
+                    .select_related("author")
+                    .prefetch_related("likes", "replies__author__profile", "replies__likes", "author__profile")
+                    , to_attr="all_post_comments"), "tags", "likes", "author__profile")
+                .filter(id=pk).first())
+        
+        # post = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("comments", "tags", "likes", "author__profile").filter(id=pk).first()
         comment_form = CommentCreateForm()
         comment_reply_form = CommentReplyCreateForm()
-    except:
+    except Exception as e:
+        print(f"Error: {e}")
         raise Http404()
     
 
     if request.htmx:
         if "top" in request.GET:
             # comments = post.comments.annotate(number_of_likes=Count("likes")).filter(number_of_likes__gt=0).order_by("-number_of_likes")
-            comments = Comment.objects.annotate(number_of_likes=Count("likes"), number_of_replies=Count("replies")).select_related("author", "parent_post").prefetch_related("likes", "replies", "author__profile").filter(parent_post=post, number_of_likes__gt=0).order_by("-number_of_likes")
+            comments = (Comment.objects
+                        .annotate(
+                            number_of_likes=Count("likes"), 
+                            number_of_replies=Count("replies"),
+                            has_replies=Case(
+                            When(number_of_replies__gt=0, then=True), 
+                            default=False,
+                            output_field=BooleanField()
+                            )
+                            )
+                        .select_related("author", "parent_post")
+                        .prefetch_related("likes", "replies__author__profile", "replies__likes", "author__profile")
+                        .filter(parent_post=post, number_of_likes__gt=0)
+                        .order_by("-number_of_likes"))
         else:
-            # comments = post.comments.annotate(number_of_likes=Count("likes")).comments.all()
-            comments = Comment.objects.annotate(number_of_likes=Count("likes"), number_of_replies=Count("replies")).select_related("author", "parent_post").prefetch_related("likes", "replies", "author__profile").filter(parent_post=post)
+            comments = post.comments.all()
         context = {
             "comments": comments,
             "comment_reply_form": comment_reply_form,
@@ -155,6 +187,7 @@ def post_detail_view(request, pk):
         "comment_reply_form": comment_reply_form,
     }
     return render(request, "a_post/post_detail.html", context)
+
 
 
 @login_required

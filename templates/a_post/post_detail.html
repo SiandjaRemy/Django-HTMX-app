@@ -37,9 +37,9 @@
 
 
     <div id="tab-contents">
-        {% if post.comments.count %}
+        {% if post.all_post_comments.count %}
 
-            {% for comment in post.comments.all %}
+            {% for comment in post.all_post_comments %}
 
             {% include "a_post/comment.html" %}
 

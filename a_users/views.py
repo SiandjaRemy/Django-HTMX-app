@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.db.models import Count
 
 from a_post.forms import CommentReplyCreateForm
+from a_post.models import Post, Comment
 from .models import Profile
 from .forms import ProfileEditForm
 
@@ -16,23 +17,23 @@ User = get_user_model()
 
 def profile_view(request, username=None):
     if username:
-        profile = Profile.objects.filter(user__username=username).first()
+        profile = Profile.objects.prefetch_related("user").filter(user__username=username).first()
     else:
         try:
-            profile = request.user.profile
+            profile = Profile.objects.select_related("user").prefetch_related("user").filter(user=request.user).first()
         except:
             raise Http404()
         
-    posts = profile.user.posts.all()
+    posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").filter(author=profile.user)
     if request.htmx:
         if "top-posts" in request.GET:
-            posts = profile.user.posts.annotate(number_of_likes=Count("likes")).filter(number_of_likes__gt=0).order_by("-number_of_likes")
+            posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").filter(author=profile.user).filter(number_of_likes__gt=0).order_by("-number_of_likes")
             context = {
                 "posts": posts
             }
             return render(request, "snippets/filterd_user_posts.html", context)
         elif "top-comments" in request.GET:
-            comments = profile.user.comments.annotate(number_of_likes=Count("likes")).filter(number_of_likes__gt=0).order_by("-number_of_likes")
+            comments = Comment.objects.annotate(number_of_likes=Count("likes"), number_of_replies=Count("replies")).select_related("author", "parent_post").prefetch_related("likes", "replies").filter(author=profile.user, number_of_likes__gt=0).order_by("-number_of_likes")
             comment_reply_form = CommentReplyCreateForm()
             if request.method == "POST":
                 comment_reply_form = CommentReplyCreateForm(request.POST)
@@ -43,9 +44,7 @@ def profile_view(request, username=None):
             }
             return render(request, "snippets/filterd_user_comments.html", context)
         elif "liked-posts" in request.GET:
-            # Think on how to order them by the date of creation of the like
-            # posts = profile.user.liked_posts.all()
-            posts = profile.user.liked_posts.order_by("-likedpost__created_at")
+            posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "comments", "author__profile").filter(author=profile.user).order_by("-likedpost__created_at")
             context = {
                 "posts": posts
             }
