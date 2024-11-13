@@ -17,7 +17,7 @@ def sidebar_view(tag=None, user=None):
             number_of_likes=Count("likes"),
         )
         .select_related("author")
-        .prefetch_related("likes", "comments")
+        .prefetch_related("likes", "comments", "author__profile")
         .filter(number_of_likes__gt=0)
         .order_by("-number_of_likes")
     )

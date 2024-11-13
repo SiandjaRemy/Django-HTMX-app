@@ -6,7 +6,12 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 
 from a_post.models import Comment, CommentReply, Post, Tag
-from a_post.forms import CommentCreateForm, CommentReplyCreateForm, PostCreateForm, PostEditForm
+from a_post.forms import (
+    CommentCreateForm,
+    CommentReplyCreateForm,
+    PostCreateForm,
+    PostEditForm,
+)
 
 from bs4 import BeautifulSoup
 import requests
@@ -14,68 +19,79 @@ import requests
 
 # Create your views here.
 
-def home_view(request, tag=None):
 
+def home_view(request, tag=None):
     if tag is not None:
         try:
-            all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").filter(tags__slug=tag).order_by("-created_at")
+            all_posts = (
+                Post.objects
+                .select_related("author")
+                .prefetch_related("comments", "tags", "likes", "author__profile__user")
+                .filter(tags__slug=tag)
+                .order_by("-created_at")
+            )
             tag = Tag.objects.filter(slug=tag).first()
         except Exception as e:
             print(f"Error: {e}")
     else:
-        all_posts = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "author__profile__user").all().order_by("-created_at")
-    
+        # pass
+        all_posts = (
+            Post.objects
+            .select_related("author")
+            .prefetch_related("comments", "tags", "likes", "author__profile__user")
+            .all()
+            .order_by("-created_at")
+        )
+
     paginator = Paginator(all_posts, 3)
     page = int(request.GET.get("page", 1))
     try:
         posts = paginator.page(page)
     except:
         return HttpResponse("")
-    
+
     context = {
         "posts": posts,
         "tag": tag,
         "page": page,
     }
-    
+
     if request.htmx:
         return render(request, "snippets/home_posts_paginator.html", context)
-    
+
     return render(request, "a_post/home.html", context)
 
 
 @login_required
 def post_create_view(request):
     form = PostCreateForm()
-    context = {
-        "form": form
-    }
+    context = {"form": form}
     if request.method == "POST":
         form = PostCreateForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
-            
+
             try:
                 website = requests.get(form.data["url"])
-            
+
                 source_code = BeautifulSoup(website.text, "html.parser")
-                
-                find_image = source_code.select('meta[content^="https://live.staticflickr.com/"]')
+
+                find_image = source_code.select(
+                    'meta[content^="https://live.staticflickr.com/"]'
+                )
                 image = find_image[0]["content"]
                 post.image = image
-                
-                find_title = source_code.select('h1.photo-title')
+
+                find_title = source_code.select("h1.photo-title")
                 title = find_title[0].text.strip()
                 post.title = title
-                
-                
-                find_artist = source_code.select('a.owner-name')
+
+                find_artist = source_code.select("a.owner-name")
                 artist = find_artist[0].text.strip()
                 post.artist = artist
-                
+
                 post.author = request.user
-                
-                
+
                 post.save()
                 form.save_m2m()
                 return redirect("home")
@@ -83,7 +99,7 @@ def post_create_view(request):
                 messages.error(request, "Something went wrong")
                 print(f"Error: {e}")
                 # return redirect("post-create")
-        
+
     return render(request, "a_post/post_create.html", context)
 
 
@@ -93,16 +109,14 @@ def post_delete_view(request, pk):
         post = Post.objects.filter(id=pk, author=request.user).first()
     except:
         raise Http404()
-    
-    context = {
-        "post": post
-    }
-    
+
+    context = {"post": post}
+
     if request.method == "POST":
         post.delete()
         messages.success(request, "Post deleted")
         return redirect("home")
-        
+
     return render(request, "a_post/post_delete.html", context)
 
 
@@ -110,7 +124,7 @@ def post_delete_view(request, pk):
 def post_edit_view(request, pk):
     post = Post.objects.filter(id=pk, author=request.user).first()
     form = PostEditForm(instance=post)
-    
+
     if request.method == "POST":
         form = PostEditForm(request.POST, instance=post)
         if form.is_valid():
@@ -122,63 +136,81 @@ def post_edit_view(request, pk):
         "post": post,
         "form": form,
     }
-    
+
     return render(request, "a_post/post_edit.html", context)
 
 
 def post_detail_view(request, pk):
     try:
-        post = (Post.objects
-                .annotate(
-                    number_of_likes=Count("likes"), 
-                    number_of_comments=Count("comments"),
-                    has_comments=Case(
-                            When(number_of_comments__gt=0, then=True), 
-                            default=False,
-                            output_field=BooleanField()
-                        ))
-                .select_related("author")
-                .prefetch_related(
-                    Prefetch("comments", queryset=Comment.objects
-                    .annotate(
-                        number_of_likes=Count("likes"), 
+        post = (
+            Post.objects.annotate(
+                number_of_likes=Count("likes"),
+                number_of_comments=Count("comments"),
+                has_comments=Case(
+                    When(number_of_comments__gt=0, then=True),
+                    default=False,
+                    output_field=BooleanField(),
+                ),
+            )
+            .select_related("author")
+            .prefetch_related(
+                Prefetch(
+                    "comments",
+                    queryset=Comment.objects.annotate(
+                        number_of_likes=Count("likes"),
                         number_of_replies=Count("replies"),
                         has_replies=Case(
-                            When(number_of_replies__gt=0, then=True), 
+                            When(number_of_replies__gt=0, then=True),
                             default=False,
-                            output_field=BooleanField()
-                        )
+                            output_field=BooleanField(),
+                        ),
                     )
                     .select_related("author")
-                    .prefetch_related("likes", "replies__author__profile", "replies__likes", "author__profile")
-                    , to_attr="all_post_comments"), "tags", "likes")
-                .filter(id=pk).first())
-        
+                    .prefetch_related(
+                        "likes",
+                        "replies__author__profile",
+                        "replies__likes",
+                        "author__profile",
+                    ),
+                    to_attr="all_post_comments",
+                ),
+                "tags",
+                "likes",
+            )
+            .filter(id=pk)
+            .first()
+        )
+
         # post = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("comments", "tags", "likes", "author__profile").filter(id=pk).first()
         comment_form = CommentCreateForm()
         comment_reply_form = CommentReplyCreateForm()
     except Exception as e:
         print(f"Error: {e}")
         raise Http404()
-    
 
     if request.htmx:
         if "top" in request.GET:
             # comments = post.comments.annotate(number_of_likes=Count("likes")).filter(number_of_likes__gt=0).order_by("-number_of_likes")
-            comments = (Comment.objects
-                        .annotate(
-                            number_of_likes=Count("likes"), 
-                            number_of_replies=Count("replies"),
-                            has_replies=Case(
-                            When(number_of_replies__gt=0, then=True), 
-                            default=False,
-                            output_field=BooleanField()
-                            )
-                            )
-                        .select_related("author", "parent_post")
-                        .prefetch_related("likes", "replies__author__profile", "replies__likes", "author__profile")
-                        .filter(parent_post=post, number_of_likes__gt=0)
-                        .order_by("-number_of_likes"))
+            comments = (
+                Comment.objects.annotate(
+                    number_of_likes=Count("likes"),
+                    number_of_replies=Count("replies"),
+                    has_replies=Case(
+                        When(number_of_replies__gt=0, then=True),
+                        default=False,
+                        output_field=BooleanField(),
+                    ),
+                )
+                .select_related("author", "parent_post")
+                .prefetch_related(
+                    "likes",
+                    "replies__author__profile",
+                    "replies__likes",
+                    "author__profile",
+                )
+                .filter(parent_post=post, number_of_likes__gt=0)
+                .order_by("-number_of_likes")
+            )
         else:
             comments = post.comments.all()
         context = {
@@ -186,7 +218,6 @@ def post_detail_view(request, pk):
             "comment_reply_form": comment_reply_form,
         }
         return render(request, "snippets/filtered_comments.html", context)
-        
 
     context = {
         "post": post,
@@ -196,12 +227,11 @@ def post_detail_view(request, pk):
     return render(request, "a_post/post_detail.html", context)
 
 
-
 @login_required
 def comment_sent_view(request, pk):
     post = Post.objects.filter(id=pk).first()
     comment_reply_form = CommentReplyCreateForm()
-    
+
     if request.method == "POST":
         comment_form = CommentCreateForm(request.POST)
         if comment_form.is_valid():
@@ -209,7 +239,7 @@ def comment_sent_view(request, pk):
             comment.author = request.user
             comment.parent_post = post
             comment.save()
-            
+
     context = {
         "comment": comment,
         "post": post,
@@ -217,7 +247,7 @@ def comment_sent_view(request, pk):
     }
     print(f"Context: {context}")
     return render(request, "snippets/add_comment.html", context)
-        
+
 
 @login_required
 def comment_delete_view(request, pk):
@@ -229,18 +259,21 @@ def comment_delete_view(request, pk):
             messages.success(request, "Comment deleted")
             return redirect("post-detail", parent_post_id)
         else:
-            messages.error(request, "Comment not found or you do not have permission to delete it.")
-            return redirect("post-detail", pk)  # Redirect to a suitable page or URL in case the comment is not found or user does not have permission
+            messages.error(
+                request, "Comment not found or you do not have permission to delete it."
+            )
+            return redirect(
+                "post-detail", pk
+            )  # Redirect to a suitable page or URL in case the comment is not found or user does not have permission
 
     except Comment.DoesNotExist:
         raise Http404()
-        
 
 
 @login_required
 def comment_reply_sent_view(request, pk):
     comment = Comment.objects.filter(id=pk).first()
-    
+
     if request.method == "POST":
         comment_reply_form = CommentReplyCreateForm(request.POST)
         if comment_reply_form.is_valid():
@@ -248,15 +281,14 @@ def comment_reply_sent_view(request, pk):
             comment_reply.author = request.user
             comment_reply.parent_comment = comment
             comment_reply.save()
-            
+
     context = {
         "reply": comment_reply,
         "comment": comment,
     }
     print(f"Context: {context}")
     return render(request, "snippets/add_comment_reply.html", context)
-    
-    
+
 
 @login_required
 def comment_reply_delete_view(request, pk):
@@ -268,14 +300,18 @@ def comment_reply_delete_view(request, pk):
             messages.success(request, "Reply deleted")
             return redirect("post-detail", post_id)
         else:
-            messages.error(request, "Comment reply not found or you do not have permission to delete it.")
-            return redirect("post-detail", pk)  # Redirect to a suitable page or URL in case the comment is not found or user does not have permission
+            messages.error(
+                request,
+                "Comment reply not found or you do not have permission to delete it.",
+            )
+            return redirect(
+                "post-detail", pk
+            )  # Redirect to a suitable page or URL in case the comment is not found or user does not have permission
 
     except CommentReply.DoesNotExist:
         raise Http404()
-        
-        
-        
+
+
 def like_toggle(model):
     def inner_function(func):
         def wrapper(request, *args, **kwargs):
@@ -290,9 +326,10 @@ def like_toggle(model):
             else:
                 messages.error(request, "You cant like your own object")
             return func(request, object)
-        return wrapper
-    return inner_function
 
+        return wrapper
+
+    return inner_function
 
 
 @login_required
@@ -320,4 +357,3 @@ def like_comment_reply_view(request, object):
         "reply": object,
     }
     return render(request, "snippets/comment_reply_likes.html", context)
-

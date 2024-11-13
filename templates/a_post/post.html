@@ -52,10 +52,10 @@
         class="font-bold hover:underline"
         href="{% url 'post-detail' post.id %}"
       >
-      {% if post.all_post_comments.count %}
+      {% if post.comments.count %}
         <div id="commentscount-{{ post.id }}" class="flex items-center">
-          Comment{{ post.all_post_comments.count|pluralize }}
-        <span class="font-light text-gray-500 ml-1">{{ post.all_post_comments.count }}</span>
+          Comment{{ post.comments.count|pluralize }}
+        <span class="font-light text-gray-500 ml-1">{{ post.comments.count }}</span>
         </div>
         {% else %}
         {% if user.is_authenticated %}

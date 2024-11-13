@@ -12,7 +12,7 @@
 
 {% endfor %}
 
-
+{% if posts.count %}
 <div class="" hx-get="{% if tag %}{% url 'category' tag.slug %}{% else %}{% url 'home' %}{% endif %}?page={{ page|add:1 }}"
     hx-trigger="revealed"
     hx-target="this"
@@ -20,5 +20,6 @@
     >
     Loading...
 </div>
+{% endif %}
 
 {% endblock %}
