@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import Http404, HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Prefetch, When, BooleanField, Case
+from django.db.models import Count, Prefetch, When, BooleanField, Case, OuterRef
 from django.contrib import messages
 from django.core.paginator import Paginator
 
@@ -157,7 +157,6 @@ def post_detail_view(request, pk):
                 Prefetch(
                     "comments",
                     queryset=Comment.objects.annotate(
-                        number_of_likes=Count("likes"),
                         number_of_replies=Count("replies"),
                         has_replies=Case(
                             When(number_of_replies__gt=0, then=True),
