@@ -14,7 +14,7 @@ class Post(models.Model):
     image = models.URLField(max_length=500)
     body = models.TextField()
     likes = models.ManyToManyField(User, related_name="liked_posts", through="LikedPost")
-    tags = models.ManyToManyField("Tag")
+    tags = models.ManyToManyField("Tag", related_name="posts")
     artist = models.CharField(max_length=500, null=True)
     url = models.URLField(max_length=500, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

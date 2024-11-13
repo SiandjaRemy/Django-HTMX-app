@@ -8,15 +8,32 @@ User = get_user_model()
 
 register = Library()
 
+
 @register.inclusion_tag("includes/sidebar.html")
 def sidebar_view(tag=None, user=None):
     all_categories = Tag.objects.all()
-    top_post = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("tags", "likes", "comments", "author__profile").filter(number_of_likes__gt=0).order_by("-number_of_likes")
-    top_comments = Comment.objects.annotate(number_of_likes=Count("likes"), number_of_replies=Count("replies")).select_related("author", "parent_post").prefetch_related("likes", "replies", "author__profile").filter(number_of_likes__gt=0).order_by("-number_of_likes")
-    
+    top_post = (
+        Post.objects.annotate(
+            number_of_likes=Count("likes"),
+        )
+        .select_related("author")
+        .prefetch_related("likes", "comments")
+        .filter(number_of_likes__gt=0)
+        .order_by("-number_of_likes")
+    )
+    top_comments = (
+        Comment.objects.annotate(
+            number_of_likes=Count("likes"),
+        )
+        .select_related("author", "parent_post")
+        .prefetch_related("likes", "replies", "author__profile")
+        .filter(number_of_likes__gt=0)
+        .order_by("-number_of_likes")
+    )
+
     # if user:
     #     user = User.objects.prefetch_related("profile", "liked_posts", "liked_comments").filter(username=user.username)
-        
+
     context = {
         "categories": all_categories,
         "top_post": top_post,

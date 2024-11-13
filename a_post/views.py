@@ -129,7 +129,14 @@ def post_edit_view(request, pk):
 def post_detail_view(request, pk):
     try:
         post = (Post.objects
-                .annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments"))
+                .annotate(
+                    number_of_likes=Count("likes"), 
+                    number_of_comments=Count("comments"),
+                    has_comments=Case(
+                            When(number_of_comments__gt=0, then=True), 
+                            default=False,
+                            output_field=BooleanField()
+                        ))
                 .select_related("author")
                 .prefetch_related(
                     Prefetch("comments", queryset=Comment.objects
@@ -144,7 +151,7 @@ def post_detail_view(request, pk):
                     )
                     .select_related("author")
                     .prefetch_related("likes", "replies__author__profile", "replies__likes", "author__profile")
-                    , to_attr="all_post_comments"), "tags", "likes", "author__profile")
+                    , to_attr="all_post_comments"), "tags", "likes")
                 .filter(id=pk).first())
         
         # post = Post.objects.annotate(number_of_likes=Count("likes"), number_of_comments=Count("comments")).select_related("author").prefetch_related("comments", "tags", "likes", "author__profile").filter(id=pk).first()

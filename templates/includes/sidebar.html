@@ -36,7 +36,7 @@
                             <span class="text-sm mr-1">No author</span>
                             {% endif %}
                         </div>
-                        <span class="text-sm {% if user in post.likes.all %} font-bold {% else %} font-light {% endif %} text-grey-500 shrink-0">{{ post.number_of_likes }} Like{{ post.number_of_likes | pluralize }} / {{ post.number_of_comments }}</span>
+                        <span class="text-sm {% if user in post.likes.all %} font-bold {% else %} font-light {% endif %} text-grey-500 shrink-0">{{ post.likes.count }} Like{{ post.likes.count | pluralize }} / {{ post.comments.count }}</span>
                     </a>
                 </li>
                 {% endfor %}
@@ -59,7 +59,7 @@
                             {% endif %}
                             <span class="font-bold text-sm mr-1 truncate capitalize">{% if comment.author %} {{ comment.author}} {% else %} <span class="font-light">No author</span> {% endif %} : <span class="">{{ comment.body }}</span></span>
                         </div>
-                        <span class="text-sm {% if user in comment.likes.all %} font-bold {% else %} font-light {% endif %} text-grey-500 shrink-0">{{ comment.number_of_likes }} Like{{ comment.number_of_likes | pluralize }} / {{ comment.number_of_replies }}</span>
+                        <span class="text-sm {% if user in comment.likes.all %} font-bold {% else %} font-light {% endif %} text-grey-500 shrink-0">{{ comment.likes.count }} Like{{ comment.likes.count | pluralize }} / {{ comment.replies.count }}</span>
                     </a>
                 </li>
                 {% endfor %}
