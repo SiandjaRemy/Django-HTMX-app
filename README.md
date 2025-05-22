@@ -15,9 +15,10 @@ This isn't just _another_ Django blog—it's a **real-time, HTMX-powered** exper
 ✅ **Optimized AF** (Debug-toolbar approved queries + optional high-level logging)  
 ✅ **Slick UI** (Tailwind + Alpine.js for those smooth dropdowns/popups)
 
-_"Wait, did that like just happen without a refresh?"_ 😏 **Yes, thanks to HTMX magic!**
+_"Wait, did that like just happen without a refresh and new posts just load automatically as I scrolled?"_ 😏 **Yep, that's HTMX + Django flexing!**
 
 ---
+
 ![1 2](https://github.com/user-attachments/assets/d8b659c0-fc54-4be6-bf66-ba38ea1c8d90)
 
 ---
